@@ -79,8 +79,8 @@ RUN pip3 install -r custom_nodes/comfyui-art-venture/requirements.txt
 # Ensure start.sh is executable
 RUN chmod +x /start.sh
 
-# Reset ENTRYPOINT
+# Reset ENTRYPOINT just in case
 ENTRYPOINT []
 
-# Set CMD
+# Set CMD to your start script
 CMD ["/start.sh"]
