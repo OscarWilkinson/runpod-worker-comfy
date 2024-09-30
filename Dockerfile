@@ -1,10 +1,4 @@
-# Stage 1: Base image
-FROM runpod/pytorch:2.0.1-py3.10-cuda11.8.0-devel-ubuntu22.04 AS base
-
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_PREFER_BINARY=1
-ENV PYTHONUNBUFFERED=1
+FROM timpietruskyblibla/runpod-worker-comfy:3.1.0-base as base
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,13 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Stage 2: Build dependencies and download models
-FROM base AS downloader
-
-# Clone ComfyUI repository
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui
-
 WORKDIR /comfyui
+
+RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Download models and custom nodes
 RUN mkdir -p models/checkpoints models/loras
@@ -44,40 +34,12 @@ RUN git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git custom
 RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui/ custom_nodes/was-node-suite-comfyui
 RUN git clone https://github.com/sipherxyz/comfyui-art-venture/ custom_nodes/comfyui-art-venture
 
-# Add extra model paths
-ADD src/extra_model_paths.yaml ./
-
-# Add scripts and set permissions
-WORKDIR /
-ADD src/start.sh src/rp_handler.py test_input.json ./
-RUN chmod +x /start.sh
-
-# Stage 3: Final image
-FROM base
-
-# Copy ComfyUI from downloader stage
-COPY --from=downloader /comfyui /comfyui
-COPY --from=downloader /start.sh /start.sh
-COPY --from=downloader /rp_handler.py /rp_handler.py
-COPY --from=downloader /test_input.json /test_input.json
-
-# Set working directory
-WORKDIR /comfyui
-
-# Install dependencies
-RUN pip3 install --upgrade --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
-    && pip3 install --upgrade -r requirements.txt
-
-# Install runpod and requests
-RUN pip3 install runpod requests
-
 # Install dependencies for custom nodes
 RUN pip3 install -r custom_nodes/ComfyUI_GraftingRayman/requirements.txt
 RUN pip3 install -r custom_nodes/was-node-suite-comfyui/requirements.txt
 RUN pip3 install -r custom_nodes/comfyui-art-venture/requirements.txt
 
-# Ensure start.sh is executable
-RUN chmod +x /start.sh
+WORKDIR /
 
-# Set CMD to your start script
-CMD ["/start.sh"]
+# Start the container
+CMD /start.sh

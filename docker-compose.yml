@@ -1,8 +1,6 @@
-version: "3.8"
-
 services:
   comfyui:
-    image: oscarwilkinson/runpod-worker-comfy:base
+    image: oscarwilkinson/runpod-worker-comfy:dev
     container_name: comfyui-worker
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
