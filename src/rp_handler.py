@@ -61,9 +61,15 @@ def validate_input(job_input):
                 None,
                 "'images' must be a list of objects with 'name' and 'image' keys",
             )
+            
+    # Validate 'path' in input, if provided
+    path = job_input.get("path")
+    if path is not None:
+        if not isinstance(path, str):
+            return None, "'path' must be a string"
 
     # Return validated data and no error
-    return {"workflow": workflow, "images": images}, None
+    return {"workflow": workflow, "images": images, "path": path}, None
 
 
 def check_server(url, retries=500, delay=50):
@@ -200,7 +206,7 @@ def base64_encode(img_path):
         return f"{encoded_string}"
 
 
-def process_output_images(outputs, job_id):
+def process_output_images(outputs, job_id, path):
     """
     This function takes the "outputs" from image generation and the job ID,
     then determines the correct way to return the image, either as a direct URL
@@ -230,9 +236,9 @@ def process_output_images(outputs, job_id):
     """
 
     # The path where ComfyUI stores the generated images
-    COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
+    COMFY_OUTPUT_PATH = path
 
-    output_images = {}
+    output_images = []
 
     for node_id, node_output in outputs.items():
         if "images" in node_output:
@@ -296,6 +302,7 @@ def handler(job):
     # Extract validated data
     workflow = validated_data["workflow"]
     images = validated_data.get("images")
+    path = validated_data.get("path")
 
     # Make sure that the ComfyUI API is available
     check_server(
@@ -338,7 +345,7 @@ def handler(job):
         return {"error": f"Error waiting for image generation: {str(e)}"}
 
     # Get the generated image and return it as URL in an AWS bucket or as base64
-    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
+    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"], path)
 
     result = {**images_result, "refresh_worker": REFRESH_WORKER}
 
