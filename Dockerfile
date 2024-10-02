@@ -1,5 +1,9 @@
 FROM timpietruskyblibla/runpod-worker-comfy:3.1.0-base as base
 
+# Swap files with ours
+RUN rm -rf rp_handler.py
+ADD src/rp_handler.py ./
+
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
