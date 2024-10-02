@@ -5,7 +5,7 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - SERVE_API_LOCALLY=true
-      
+
     ports:
       - "8000:8000"
       - "8188:8188"

@@ -61,15 +61,7 @@ def validate_input(job_input):
                 None,
                 "'images' must be a list of objects with 'name' and 'image' keys",
             )
-    
-    # Validate 'filename' in input, if provided
-    filename = job_input.get("filename")
-    if filename is not None:
-        if not isinstance(filename, str):
-            return None, "'filename' must be a string"
-    else:
-        filename = "no_name_specified"
-         
+            
     # Validate 'path' in input, if provided
     path = job_input.get("path")
     if path is not None:
@@ -79,7 +71,7 @@ def validate_input(job_input):
         path = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
 
     # Return validated data and no error
-    return {"workflow": workflow, "images": images, "filename": filename, "path": path}, None
+    return {"workflow": workflow, "images": images, "path": path}, None
 
 
 def check_server(url, retries=500, delay=50):
@@ -216,7 +208,7 @@ def base64_encode(img_path):
         return f"{encoded_string}"
 
 
-def process_output_images(outputs, filename, path):
+def process_output_images(outputs, job_id, path):
     COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
 
     bucket_creds = {
@@ -230,8 +222,7 @@ def process_output_images(outputs, filename, path):
     for node_id, node_output in outputs.items():
         if "images" in node_output:
             for image_info in node_output["images"]:
-                file_type = "." + image_info["filename"].split(".")[-1]
-                image_filename = filename + file_type
+                image_filename = image_info["filename"]
                 image_path = os.path.join(COMFY_OUTPUT_PATH, image_info["subfolder"], image_filename)
 
                 if os.path.exists(image_path):
@@ -242,7 +233,7 @@ def process_output_images(outputs, filename, path):
                             object_key,
                             image_path,
                             bucket_creds,
-                            prefix=""
+                            "images"
                         )
                         images_uploaded.append(image_url)
                         print("Image uploaded to AWS S3")
@@ -286,7 +277,6 @@ def handler(job):
     # Extract validated data
     workflow = validated_data["workflow"]
     images = validated_data.get("images")
-    filename = validated_data.get("filename")
     path = validated_data.get("path")
 
     # Make sure that the ComfyUI API is available
@@ -330,7 +320,7 @@ def handler(job):
         return {"error": f"Error waiting for image generation: {str(e)}"}
 
     # Get the generated image and return it as URL in an AWS bucket or as base64
-    images_result = process_output_images(history[prompt_id].get("outputs"), filename, path)
+    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"], path)
 
     result = {**images_result, "refresh_worker": REFRESH_WORKER}
 
