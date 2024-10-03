@@ -1,9 +1,5 @@
 FROM timpietruskyblibla/runpod-worker-comfy:3.1.0-base as base
 
-# Swap files with ours
-RUN rm -rf rp_handler.py
-ADD src/rp_handler.py ./
-
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
@@ -24,7 +20,8 @@ RUN mkdir -p models/checkpoints \
     models/loras \
     models/sam2 \
     models/grounding-dino \
-    models/upscale_models
+    models/upscale_models \
+    models/inpaint
 
 # Download checkpoints
 RUN curl -L -o models/checkpoints/fenrisxlFlux_fenrisxlSDXLLightning.safetensors \
@@ -44,11 +41,13 @@ RUN curl -L -o models/grounding-dino/groundingdino_swint_ogc.pth \
 RUN curl -L -o models/grounding-dino/GroundingDINO_SwinB.cfg.py \
     "https://huggingface.co/ShilongLiu/GroundingDINO/resolve/main/GroundingDINO_SwinB.cfg.py"
 
-RUN git clone https://huggingface.co/google-bert/bert-base-uncased models/bert-base-uncased
-
 # Download upscale models
 RUN curl -L -o models/upscale_models/4xUltrasharp_4xUltrasharpV10.pt \
     "https://civitai.com/api/download/models/125843?type=Model&format=PickleTensor"
+
+# Download inpaint models
+RUN curl -L -o models/inpaint/big-lama.pt \
+    "https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.pt"
 
 
 # Clone custom nodes
@@ -59,9 +58,16 @@ RUN git clone https://github.com/sipherxyz/comfyui-art-venture/ custom_nodes/com
 RUN git clone https://github.com/neverbiasu/ComfyUI-SAM2 custom_nodes/ComfyUI-SAM2
 RUN git clone https://github.com/cubiq/ComfyUI_essentials custom_nodes/ComfyUI_essentials
 RUN git clone https://github.com/john-mnz/ComfyUI-Inspyrenet-Rembg custom_nodes/ComfyUI-Inspyrenet-Rembg
-RUN git clone https://github.com/Acly/comfyui-inpaint-nodes custom_nodes/comfyui-inpaint-nodes
 RUN git clone https://github.com/kijai/ComfyUI-SUPIR custom_nodes/ComfyUI-SUPIR
+RUN git clone https://github.com/SherryXieYuchen/ComfyUI-Image-Inpainting custom_nodes/ComfyUI-Image-Inpainting
 
+# Replace with our own files
+RUN rm -f custom_nodes/ComfyUI-SAM2/sam2/build_sam.py
+RUN rm -f custom_nodes/ComfyUI-SAM2/sam2/utils/transforms.py
+RUN rm -f custom_nodes/ComfyUI-SAM2/sam2/modeling/backbones/hieradet.py
+ADD src/build_sam.py custom_nodes/ComfyUI-SAM2/sam2/build_sam.py
+ADD src/transforms.py custom_nodes/ComfyUI-SAM2/sam2/utils/transforms.py
+ADD src/hieradet.py custom_nodes/ComfyUI-SAM2/sam2/modeling/backbones/hieradet.py
 
 # Install dependencies for custom nodes
 RUN pip3 install -r custom_nodes/ComfyUI_GraftingRayman/requirements.txt
@@ -70,10 +76,13 @@ RUN pip3 install -r custom_nodes/comfyui-art-venture/requirements.txt
 RUN pip3 install -r custom_nodes/ComfyUI-SAM2/requirements.txt
 RUN pip3 install -r custom_nodes/ComfyUI_essentials/requirements.txt
 RUN pip3 install -r custom_nodes/ComfyUI-Inspyrenet-Rembg/requirements.txt
-RUN pip3 install opencv-python
 RUN pip3 install -r custom_nodes/ComfyUI-SUPIR/requirements.txt
 
 WORKDIR /
+
+# Swap files with ours
+RUN rm -f rp_handler.py
+ADD src/rp_handler.py ./
 
 # Start the container
 CMD /start.sh

@@ -16,7 +16,8 @@ COMFY_API_AVAILABLE_MAX_RETRIES = 500
 # Time to wait between poll attempts in milliseconds
 COMFY_POLLING_INTERVAL_MS = int(os.environ.get("COMFY_POLLING_INTERVAL_MS", 250))
 # Maximum number of poll attempts
-COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 500))
+COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 1000))
+print("COMFY_POLLING_MAX_RETRIES: " + str(COMFY_POLLING_MAX_RETRIES))
 # Host where ComfyUI is running
 COMFY_HOST = "127.0.0.1:8188"
 # Enforce a clean state after each job is done
@@ -243,15 +244,17 @@ def process_output_images(outputs, job_id, path):
                         print("Image converted to base64")
                 else:
                     print(f"Image does not exist at {image_path}")
-                    return {
-                        "status": "error",
-                        "message": f"Image does not exist: {image_path}",
-                    }
 
-    return {
-        "status": "success",
-        "images": images_uploaded
-    }
+    if len(images_uploaded) == 0:
+        return {
+            "status": "error",
+            "message": "No images uploaded"
+        }
+    else:
+        return {
+            "status": "success",
+            "images": images_uploaded
+        }
 
 
 def handler(job):
