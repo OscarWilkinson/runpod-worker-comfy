@@ -1,0 +1,13 @@
+FROM timpietruskyblibla/runpod-worker-comfy:3.1.0-base as base
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories
+RUN mkdir -p comfyui/models/checkpoints
+
+# Download checkpoints
+RUN curl -L -o comfyui/models/checkpoints/fenrisxlFlux_fenrisxlSDXLLightning.safetensors \
+    "https://civitai.com/api/download/models/370565?type=Model&format=SafeTensor&size=full&fp=fp16"

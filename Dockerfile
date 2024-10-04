@@ -1,4 +1,4 @@
-FROM timpietruskyblibla/runpod-worker-comfy:3.1.0-base as base
+FROM oscarwilkinson/runpod-worker-comfy-base:base as base
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,16 +16,11 @@ WORKDIR /comfyui
 RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Create necessary directories
-RUN mkdir -p models/checkpoints \
-    models/loras \
+RUN mkdir -p models/loras \
     models/sam2 \
     models/grounding-dino \
     models/upscale_models \
     models/inpaint
-
-# Download checkpoints
-RUN curl -L -o models/checkpoints/fenrisxlFlux_fenrisxlSDXLLightning.safetensors \
-    "https://civitai.com/api/download/models/370565?type=Model&format=SafeTensor&size=full&fp=fp16"
 
 # Download LoRA
 RUN curl -L -o models/loras/Pencil_Sketch-06R.safetensors \

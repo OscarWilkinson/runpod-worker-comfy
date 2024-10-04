@@ -8,15 +8,16 @@ import os
 import requests
 import base64
 from io import BytesIO
+import re  # Import the regular expressions module
 
 # Time to wait between API check attempts in milliseconds
 COMFY_API_AVAILABLE_INTERVAL_MS = 50
 # Maximum number of API check attempts
-COMFY_API_AVAILABLE_MAX_RETRIES = 500
+COMFY_API_AVAILABLE_MAX_RETRIES = int(os.environ.get("COMFY_API_AVAILABLE_MAX_RETRIES", 2000))
 # Time to wait between poll attempts in milliseconds
 COMFY_POLLING_INTERVAL_MS = int(os.environ.get("COMFY_POLLING_INTERVAL_MS", 250))
 # Maximum number of poll attempts
-COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 1000))
+COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 5000))
 print("COMFY_POLLING_MAX_RETRIES: " + str(COMFY_POLLING_MAX_RETRIES))
 # Host where ComfyUI is running
 COMFY_HOST = "127.0.0.1:8188"
@@ -75,7 +76,7 @@ def validate_input(job_input):
     return {"workflow": workflow, "images": images, "path": path}, None
 
 
-def check_server(url, retries=500, delay=50):
+def check_server(url, retries=2000, delay=50):
     """
     Check if a server is reachable via HTTP GET request
 
@@ -228,8 +229,10 @@ def process_output_images(outputs, job_id, path):
 
                 if os.path.exists(image_path):
                     if os.environ.get("BUCKET_ENDPOINT_URL", False):
+                        # Strip the generation number from the filename
+                        image_filename_clean = re.sub(r'_\d+_', '', image_filename)
                         # Construct object key without leading '/'
-                        object_key = os.path.join(path.lstrip('/'), image_filename)
+                        object_key = os.path.join(path.lstrip('/'), image_filename_clean)
                         image_url = rp_upload.upload_file_to_bucket(
                             object_key,
                             image_path,
